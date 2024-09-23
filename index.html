@@ -35,6 +35,9 @@
         let globalCompressor;
         let globalOscillator = [];
         let globalGainMod = 0;  // Para modular la ganancia general lentamente y constantemente
+        let currentFreqs = [];  // Para almacenar las frecuencias actuales
+        let targetFreqs = [];   // Para almacenar las frecuencias objetivo
+        let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
@@ -72,7 +75,8 @@
             // Crear osciladores
             for (let i = 0; i < 8; i++) {
                 let osc = new p5.Oscillator('sine');
-                osc.freq(random(200, 600));  // Rango de frecuencias controlado
+                let initialFreq = random(200, 600);  // Frecuencia inicial aleatoria
+                osc.freq(initialFreq);  
                 osc.amp(0);  // Empieza sin sonido
                 osc.disconnect();
                 osc.connect(globalReverb);
@@ -80,9 +84,11 @@
                 osc.connect(globalCompressor);
                 osc.start();
                 globalOscillator.push(osc);
+                currentFreqs.push(initialFreq);  // Guardar la frecuencia inicial
+                targetFreqs.push(initialFreq);   // La frecuencia objetivo empieza igual que la inicial
             }
 
-            // Cambiar las frecuencias de los osciladores cada minuto
+            // Cambiar las frecuencias de los osciladores cada minuto de forma suave
             setInterval(changeFrequencies, 60000);  // 60,000 ms = 1 minuto
         }
 
@@ -128,6 +134,7 @@
             let releaseTime = random(8, 12);  // Desaparición lenta y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
+                globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
                 if (random(1) > 0.4) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
@@ -139,11 +146,15 @@
             zoff += 0.2;  // Continuar desplazando el ruido para las partículas
         }
 
-        // Función para cambiar las frecuencias de los osciladores
+        // Función para cambiar las frecuencias de los osciladores y reiniciar partículas
         function changeFrequencies() {
             for (let i = 0; i < globalOscillator.length; i++) {
-                let newFreq = random(200, 600);  // Asignar una nueva frecuencia aleatoria dentro del rango
-                globalOscillator[i].freq(newFreq);
+                targetFreqs[i] = random(200, 600);  // Asignar una nueva frecuencia aleatoria como objetivo
+            }
+
+            // Reiniciar las partículas desde posiciones aleatorias
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].reset();  // Llamar a la función para reiniciar cada partícula
             }
         }
 
@@ -181,6 +192,14 @@
                 if (this.pos.x < 0) this.pos.x = width;
                 if (this.pos.y > height) this.pos.y = 0;
                 if (this.pos.y < 0) this.pos.y = height;
+            }
+
+            reset() {
+                // Reiniciar la partícula a una nueva posición y velocidad aleatorias
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector(0, 0);
+                this.acc = createVector(0, 0);
+                this.prevPos = this.pos.copy();
             }
 
             isNearCenter() {
