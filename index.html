@@ -125,7 +125,7 @@
                 }
             }
 
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.05);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
             let attackTime = random(2, 6);  // Aparición aleatoria rápida
             let releaseTime = random(8, 12);  // Desaparición lenta y suave
@@ -164,7 +164,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.1, 4);  // Fade-in de 5 segundos
+                    globalOscillator[i].amp(0.01, 4);  // Fade-in de 5 segundos
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
