@@ -42,20 +42,20 @@
             rows = floor(height / scl);
             flowfield = new Array(cols * rows);
 
-            // Reverberación amplia y más profunda para ambient
+            // Mantener el reverb amplio y profundo
             globalReverb = new p5.Reverb();
-            globalReverb.set(60, 25);  // Reverb mucho más largo y profundo
+            globalReverb.set(60, 25);  // Reverb largo y profundo
 
-            // Delay más espacioso y ambiental
+            // Mantener el delay espacioso
             globalDelay = new p5.Delay();
-            globalDelay.process(globalReverb, 0.9, 0.8, 1000);  // Delay largo para un eco suave
+            globalDelay.process(globalReverb, 0.9, 0.8, 1000);  // Delay largo con eco suave
 
-            // Compresor para evitar saturación
+            // Ajustar el compresor para evitar saturación
             globalCompressor = new p5.Compressor();
             globalCompressor.attack(0.01);
-            globalCompressor.release(0.8);  // Liberación más lenta
-            globalCompressor.threshold(-40);
-            globalCompressor.ratio(3);
+            globalCompressor.release(0.5);  // Liberación más rápida para controlar mejor los picos
+            globalCompressor.threshold(-30);  // Reducir el umbral para comprimir mejor los sonidos altos
+            globalCompressor.ratio(6);  // Aumentar la relación de compresión para controlar mejor
             globalCompressor.connect();
 
             for (let i = 0; i < 800; i++) {
@@ -68,10 +68,10 @@
             userStartAudio();
             audioStarted = true;
 
-            // Crear osciladores
+            // Crear osciladores con amplitud inicial baja para evitar saturación
             for (let i = 0; i < 6; i++) {
                 let osc = new p5.Oscillator('sine');
-                osc.freq(random(200, 600));  // Rango de frecuencias suave
+                osc.freq(random(200, 600));  // Rango de frecuencias más controlado
                 osc.amp(0);  // Empieza sin sonido
                 osc.disconnect();
                 osc.connect(globalReverb);
@@ -113,13 +113,14 @@
                 }
             }
 
-            let targetAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  
-            let attackTime = 5;  
-            let releaseTime = 10; 
+            // Ajustar el volumen y la aparición de los osciladores basados en la cantidad de partículas cercanas
+            let targetAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Reducir la amplitud máxima para evitar saturación
+            let attackTime = 5;  // Tiempo de ataque más largo para una pulsación prolongada
+            let releaseTime = 10;  // Tiempo de liberación aún más largo para una desaparición gradual
             for (let i = 0; i < globalOscillator.length; i++) {
-                globalOscillator[i].amp(targetAmp, attackTime);  
+                globalOscillator[i].amp(targetAmp, attackTime);  // Ataque largo
                 setTimeout(() => {
-                    globalOscillator[i].amp(0, releaseTime);  
+                    globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento largo cuando las partículas desaparecen
                 }, attackTime * 1000);
             }
 
@@ -155,7 +156,7 @@
             }
 
             edges() {
-
+                // Hacer que las partículas reaparezcan al otro lado de la pantalla
                 if (this.pos.x > width) this.pos.x = 0;
                 if (this.pos.x < 0) this.pos.x = width;
                 if (this.pos.y > height) this.pos.y = 0;
@@ -163,8 +164,9 @@
             }
 
             isNearCenter() {
+                // Verificar si la partícula está cerca del centro de la pantalla
                 let d = dist(this.pos.x, this.pos.y, width / 2, height / 2);
-                return d < width / 3;  
+                return d < width / 3;  // Ajustar el rango según el comportamiento visual
             }
 
             show() {
@@ -192,4 +194,5 @@
     </script>
 </body>
 </html>
+
 
