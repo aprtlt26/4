@@ -105,6 +105,7 @@
             for (let i = 0; i < particles.length; i++) {
                 particles[i].follow(flowfield);
                 particles[i].update();
+                particles[i].edges();  // Revisar y aplicar el wrap-around
                 particles[i].show();
 
                 if (particles[i].isNearCenter()) {
@@ -152,6 +153,14 @@
                 this.vel.limit(this.maxSpeed);
                 this.pos.add(this.vel);
                 this.acc.mult(0);
+            }
+
+            edges() {
+                // Hacer que las partículas reaparezcan al otro lado de la pantalla
+                if (this.pos.x > width) this.pos.x = 0;
+                if (this.pos.x < 0) this.pos.x = width;
+                if (this.pos.y > height) this.pos.y = 0;
+                if (this.pos.y < 0) this.pos.y = height;
             }
 
             isNearCenter() {
