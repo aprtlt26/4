@@ -128,7 +128,7 @@
             }
 
             // Ajustar la amplitud de los osciladores basados en la cantidad de partículas cercanas
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.05);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
             let attackTime = random(2, 5);  // Aparición aleatoria rápida
             let releaseTime = random(8, 12);  // Desaparición lenta y suave
