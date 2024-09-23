@@ -119,13 +119,13 @@
             }
 
             // Ajustar la amplitud de los osciladores basados en la cantidad de partículas cercanas
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.1);  // Ganancia basada en partículas activas
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.05);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
             let attackTime = random(2, 5);  // Aparición aleatoria rápida
             let releaseTime = random(8, 12);  // Desaparición lenta y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
-                if (random(1) > 0.5) {  // Fragmentación aleatoria
+                if (random(1) > 0.4) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
                         globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento evanescente
