@@ -113,14 +113,13 @@
                 }
             }
 
-            // Ajustar el volumen y la aparición de los osciladores basados en la cantidad de partículas cercanas
-            let targetAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);  // Ajustar el volumen según la densidad
-            let attackTime = 5;  // Tiempo de ataque más largo para una pulsación prolongada
-            let releaseTime = 10;  // Tiempo de liberación aún más largo para una desaparición gradual
+            let targetAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  
+            let attackTime = 5;  
+            let releaseTime = 10; 
             for (let i = 0; i < globalOscillator.length; i++) {
-                globalOscillator[i].amp(targetAmp, attackTime);  // Ataque largo
+                globalOscillator[i].amp(targetAmp, attackTime);  
                 setTimeout(() => {
-                    globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento largo cuando las partículas desaparecen
+                    globalOscillator[i].amp(0, releaseTime);  
                 }, attackTime * 1000);
             }
 
@@ -156,7 +155,7 @@
             }
 
             edges() {
-                // Hacer que las partículas reaparezcan al otro lado de la pantalla
+
                 if (this.pos.x > width) this.pos.x = 0;
                 if (this.pos.x < 0) this.pos.x = width;
                 if (this.pos.y > height) this.pos.y = 0;
@@ -164,9 +163,8 @@
             }
 
             isNearCenter() {
-                // Verificar si la partícula está cerca del centro de la pantalla
                 let d = dist(this.pos.x, this.pos.y, width / 2, height / 2);
-                return d < width / 3;  // Ajustar el rango según el comportamiento visual
+                return d < width / 3;  
             }
 
             show() {
@@ -194,3 +192,4 @@
     </script>
 </body>
 </html>
+
