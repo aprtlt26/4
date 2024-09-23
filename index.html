@@ -56,7 +56,7 @@
 
             // Compresor ajustado para evitar saturación
             globalCompressor = new p5.Compressor();
-            globalCompressor.attack(0.03);
+            globalCompressor.attack(0.2);
             globalCompressor.release(0.5);  // Liberación rápida para controlar mejor los picos
             globalCompressor.threshold(-30);  // Umbral más bajo para mejor control de picos
             globalCompressor.ratio(6);
@@ -73,7 +73,7 @@
             // Crear osciladores
             for (let i = 0; i < 8; i++) {
                 let osc = new p5.Oscillator('sine');
-                let initialFreq = random(200, 600);  // Frecuencia inicial aleatoria
+                let initialFreq = random(400, 800);  // Frecuencia inicial aleatoria
                 osc.freq(initialFreq);  
                 osc.amp(0);  // Empieza sin sonido
                 osc.disconnect();
