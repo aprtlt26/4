@@ -48,15 +48,15 @@
 
             // Reverberación amplia y profunda
             globalReverb = new p5.Reverb();
-            globalReverb.set(30, 15);  // Reverb profundo
+            globalReverb.set(50, 30);  // Reverb profundo
 
             // Delay espacioso
             globalDelay = new p5.Delay();
-            globalDelay.process(globalReverb, 0.03, 0.04, 2000);  // Delay largo
+            globalDelay.process(globalReverb,  0.5, 0.7, 2500);  // Delay largo
 
             // Compresor ajustado para evitar saturación
             globalCompressor = new p5.Compressor();
-            globalCompressor.attack(0.01);
+            globalCompressor.attack(0.03);
             globalCompressor.release(0.5);  // Liberación rápida para controlar mejor los picos
             globalCompressor.threshold(-30);  // Umbral más bajo para mejor control de picos
             globalCompressor.ratio(6);
@@ -68,9 +68,7 @@
 
             background(255);
 
-            // Iniciar el sonido con la activación del usuario
-            userStartAudio();
-            audioStarted = true;
+            noLoop(); // Pausar hasta que se haga clic
 
             // Crear osciladores
             for (let i = 0; i < 8; i++) {
@@ -88,8 +86,9 @@
                 targetFreqs.push(initialFreq);   // La frecuencia objetivo empieza igual que la inicial
             }
 
-            // Cambiar las frecuencias de los osciladores cada minuto de forma suave
-            setInterval(changeFrequencies, 60000);  // 60,000 ms = 1 minuto
+            
+
+            setInterval(changeFrequencies, 60000);  // Cambiar las frecuencias de los osciladores cada minuto
         }
 
         function draw() {
@@ -100,8 +99,7 @@
             let yoff = 0;
             let numActiveParticles = 0;
 
-            // Modulación continua de la ganancia general para que suba y baje en ciclos
-            globalGainMod = map(sin(frameCount * 0.01), -1, 0.001, 1, 0.05);  // Subidas y bajadas constantes de ganancia
+            globalGainMod = map(sin(frameCount * 0.05), -1, 3, 0.01, 2);  // Subidas y bajadas constantes de ganancia
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
@@ -127,14 +125,14 @@
                 }
             }
 
-            // Ajustar la amplitud de los osciladores basados en la cantidad de partículas cercanas
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.05);  // Ganancia basada en partículas activas
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            let attackTime = random(2, 5);  // Aparición aleatoria rápida
+            let attackTime = random(2, 6);  // Aparición aleatoria rápida
             let releaseTime = random(8, 12);  // Desaparición lenta y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
+               
                 if (random(1) > 0.4) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
@@ -155,6 +153,21 @@
             // Reiniciar las partículas desde posiciones aleatorias
             for (let i = 0; i < particles.length; i++) {
                 particles[i].reset();  // Llamar a la función para reiniciar cada partícula
+            }
+        }
+
+        // Activa el audio y el loop cuando se hace clic
+        function mousePressed() {
+            if (!audioStarted) {
+                userStartAudio();
+                audioStarted = true;
+
+                // Aplicar un fade-in suave a todos los osciladores
+                for (let i = 0; i < globalOscillator.length; i++) {
+                    globalOscillator[i].amp(0.1, 4);  // Fade-in de 5 segundos
+                }
+
+                loop();  // Iniciar la animación después de que se haga clic
             }
         }
 
