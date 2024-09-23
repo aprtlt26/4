@@ -101,7 +101,7 @@
             let numActiveParticles = 0;
 
             // Modulación continua de la ganancia general para que suba y baje en ciclos
-            globalGainMod = map(sin(frameCount * 0.01), -1, 0.1, 00.1, 0.5);  // Subidas y bajadas constantes de ganancia
+            globalGainMod = map(sin(frameCount * 0.01), -1, 0.1, 0.01, 0.05);  // Subidas y bajadas constantes de ganancia
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
