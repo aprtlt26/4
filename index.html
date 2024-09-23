@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EstimulaciónCerebral.Art&Psiq®-AlfonsoPretelt</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: rgb(255, 255, 255);
+        }
+
+        /* Desactivar el comportamiento de desplazamiento en móviles */
+        body {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+    <script>
+        let inc = 0.05;
+        let scl = 10;
+        let cols, rows;
+        let zoff = 0;
+        let particles = [];
+        let flowfield;
+        let maxSpeed = 0.5;
+        let audioStarted = false;
+        let globalReverb;
+        let globalDelay;
+        let globalCompressor;
+        let globalOscillator = [];
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            colorMode(HSB, 660, 900, 100, 10000);
+            cols = floor(width / scl);
+            rows = floor(height / scl);
+            flowfield = new Array(cols * rows);
+
+            // Reverberación amplia y más profunda para ambient
+            globalReverb = new p5.Reverb();
+            globalReverb.set(60, 25);  // Reverb mucho más largo y profundo
+
+            // Delay más espacioso y ambiental
+            globalDelay = new p5.Delay();
+            globalDelay.process(globalReverb, 0.9, 0.8, 1000);  // Delay largo para un eco suave
+
+            // Compresor para evitar saturación
+            globalCompressor = new p5.Compressor();
+            globalCompressor.attack(0.01);
+            globalCompressor.release(0.8);  // Liberación más lenta
+            globalCompressor.threshold(-40);
+            globalCompressor.ratio(3);
+            globalCompressor.connect();
+
+            for (let i = 0; i < 800; i++) {
+                particles.push(new Particle());
+            }
+
+            background(255);
+
+            // Iniciar el sonido con la activación del usuario
+            userStartAudio();
+            audioStarted = true;
+
+            // Crear osciladores
+            for (let i = 0; i < 6; i++) {
+                let osc = new p5.Oscillator('sine');
+                osc.freq(random(200, 600));  // Rango de frecuencias suave
+                osc.amp(0);  // Empieza sin sonido
+                osc.disconnect();
+                osc.connect(globalReverb);
+                osc.connect(globalDelay);
+                osc.connect(globalCompressor);
+                osc.start();
+                globalOscillator.push(osc);
+            }
+        }
+
+        function draw() {
+            if (!audioStarted) return;
+
+            background(10, 50);
+
+            let yoff = 0;
+            let numActiveParticles = 0;  
+            for (let y = 0; y < rows; y++) {
+                let xoff = 0;
+                for (let x = 0; x < cols; x++) {
+                    let index = x + y * cols;
+                    let angle = noise(xoff, yoff, zoff) * TWO_PI;
+                    let v = p5.Vector.fromAngle(angle);
+                    v.setMag(0.05);
+                    flowfield[index] = v;
+                    xoff += inc;
+                }
+                yoff += inc;
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].follow(flowfield);
+                particles[i].update();
+                particles[i].show();
+
+                if (particles[i].isNearCenter()) {
+                    numActiveParticles++;
+                }
+            }
+
+            // Ajustar el volumen y la aparición de los osciladores basados en la cantidad de partículas cercanas
+            let targetAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);  // Ajustar el volumen según la densidad
+            let attackTime = 5;  // Tiempo de ataque más largo para una pulsación prolongada
+            let releaseTime = 10;  // Tiempo de liberación aún más largo para una desaparición gradual
+            for (let i = 0; i < globalOscillator.length; i++) {
+                globalOscillator[i].amp(targetAmp, attackTime);  // Ataque largo
+                setTimeout(() => {
+                    globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento largo cuando las partículas desaparecen
+                }, attackTime * 1000);
+            }
+
+            zoff += 0.2;
+        }
+
+        class Particle {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector(0, 0);
+                this.acc = createVector(0, 0);
+                this.maxSpeed = maxSpeed;
+                this.prevPos = this.pos.copy();
+            }
+
+            follow(vectors) {
+                let x = floor(this.pos.x / scl);
+                let y = floor(this.pos.y / scl);
+                let index = x + y * cols;
+                let force = vectors[index];
+                this.applyForce(force);
+            }
+
+            applyForce(force) {
+                this.acc.add(force);
+            }
+
+            update() {
+                this.vel.add(this.acc);
+                this.vel.limit(this.maxSpeed);
+                this.pos.add(this.vel);
+                this.acc.mult(0);
+            }
+
+            isNearCenter() {
+                // Verificar si la partícula está cerca del centro de la pantalla
+                let d = dist(this.pos.x, this.pos.y, width / 2, height / 2);
+                return d < width / 3;  // Ajustar el rango según el comportamiento visual
+            }
+
+            show() {
+                let hueValue = map(sin(frameCount * 0.090 + this.pos.x * 0.001), -10, 1, 980, 980, 654, 224);
+                let saturationValue = map(this.pos.y, 0, height, 50, 100);
+                let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
+                let alphaValue = map(dist(this.pos.x, this.pos.y, width / 2, height / 2), 0, width / 2, 255, 100);
+
+                fill(hueValue, saturationValue, brightnessValue, alphaValue);
+                stroke(192, 192, 192, alphaValue);
+                strokeWeight(1);
+
+                beginShape();
+                let numPoints = floor(random(3, 6));
+                for (let i = 0; i < numPoints; i++) {
+                    let offsetX = random(-30, 30);
+                    let offsetY = random(-10, 20);
+                    curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
+                }
+                endShape(CLOSE);
+
+                this.prevPos = this.pos.copy();
+            }
+        }
+    </script>
+</body>
+</html>
