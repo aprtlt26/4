@@ -81,6 +81,9 @@
                 osc.start();
                 globalOscillator.push(osc);
             }
+
+            // Cambiar las frecuencias de los osciladores cada minuto
+            setInterval(changeFrequencies, 60000);  // 60,000 ms = 1 minuto
         }
 
         function draw() {
@@ -92,7 +95,7 @@
             let numActiveParticles = 0;
 
             // Modulación continua de la ganancia general para que suba y baje en ciclos
-            globalGainMod = map(sin(frameCount * 0.01), -0.01, 1, 0.001, 0.02, -0.01);  // Subidas y bajadas constantes de ganancia
+            globalGainMod = map(sin(frameCount * 0.01), -1, 1, 0.1, 0.5);  // Subidas y bajadas constantes de ganancia
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
@@ -134,6 +137,14 @@
             }
 
             zoff += 0.2;  // Continuar desplazando el ruido para las partículas
+        }
+
+        // Función para cambiar las frecuencias de los osciladores
+        function changeFrequencies() {
+            for (let i = 0; i < globalOscillator.length; i++) {
+                let newFreq = random(200, 600);  // Asignar una nueva frecuencia aleatoria dentro del rango
+                globalOscillator[i].freq(newFreq);
+            }
         }
 
         class Particle {
