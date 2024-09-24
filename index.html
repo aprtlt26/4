@@ -251,30 +251,27 @@ if (particles.length < desiredNumParticles) {
 
             
 
-            show(amplitudeLevel) {
-              // Ajustar el tamaño en función del nivel de amplitud
-let sizeMultiplier = map(amplitudeLevel, 0, 0.1, 0.5, 2);
-sizeMultiplier = constrain(sizeMultiplier, 0.5, 2);
+           show(amplitudeLevel) {
+                let hueValue = map(sin(frameCount * 0.090 + this.pos.x * 0.001), -10, 1, 980, 980, 654, 224);
+                let saturationValue = map(this.pos.y, 0, height, 50, 100);
+                let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
-// Ajustar la opacidad de las partículas
-let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Aumentar el valor mínimo a 50
-alphaValue = constrain(alphaValue, 50, 255);
+                // Ajustar la opacidad de las partículas en función de la amplitud del sonido
+                let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Valor mínimo aumentado a 50
+                alphaValue = constrain(alphaValue, 50, 255);
 
-fill(hueValue, saturationValue, brightnessValue, alphaValue);
-stroke(192, 192, 192, alphaValue);
-strokeWeight(1 * sizeMultiplier);
+                fill(hueValue, saturationValue, brightnessValue, alphaValue);
+                stroke(192, 192, 192, alphaValue);
+                strokeWeight(1);
 
-beginShape();
-let numPoints = floor(random(3, 6));
-for (let i = 0; i < numPoints; i++) {
-    let offsetX = random(-30, 30) * sizeMultiplier;
-    let offsetY = random(-10, 20) * sizeMultiplier;
-    curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
-}
-endShape(CLOSE);
-
-
-                
+                beginShape();
+                let numPoints = floor(random(3, 6));
+                for (let i = 0; i < numPoints; i++) {
+                    let offsetX = random(-30, 30);
+                    let offsetY = random(-10, 20);
+                    curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
+                }
+                endShape(CLOSE);
 
                 this.prevPos = this.pos.copy();
             }
