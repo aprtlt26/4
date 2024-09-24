@@ -254,8 +254,11 @@
                 let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Valor mínimo aumentado a 50
                 alphaValue = constrain(alphaValue, 50, 255);
 
-                fill(hueValue, saturationValue, brightnessValue, alphaValue);
-                stroke(192, 192, 192, alphaValue);
+                this.alpha = lerp(this.alpha, targetAlpha, 0.05);
+
+fill(hueValue, saturationValue, brightnessValue, this.alpha);
+stroke(192, 192, 192, this.alpha);
+
                 strokeWeight(1 * sizeMultiplier);
 
                 beginShape();
