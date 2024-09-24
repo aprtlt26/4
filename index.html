@@ -255,7 +255,7 @@ if (particles.length < desiredNumParticles) {
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
                 // Ajustar la opacidad de las partículas en función de la amplitud del sonido
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Valor mínimo aumentado a 50
+let alphaValue = map(amplitudeLevel, 0, 0.05, 50, 255);
                 alphaValue = constrain(alphaValue, 50, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
