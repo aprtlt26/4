@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EstimulaciónCerebral.Art&Psiq®-AlfonsoPretelt</title>
     <style>
         body, html {
@@ -10,8 +9,6 @@
             padding: 0;
             overflow: hidden;
             background: rgb(255, 255, 255);
-                cursor: none; 
-
         }
 
         /* Desactivar el comportamiento de desplazamiento en móviles */
@@ -21,8 +18,10 @@
     </style>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <!-- Cargar las librerías de p5.js y p5.sound.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+
     <script>
         let inc = 0.05;
         let scl = 10;
@@ -30,7 +29,7 @@
         let zoff = 0;
         let particles = [];
         let flowfield;
-        let maxSpeed = 1;
+        let maxSpeed = 0.5;
         let audioStarted = false;
         let globalReverb;
         let globalDelay;
@@ -40,6 +39,7 @@
         let currentFreqs = [];  // Para almacenar las frecuencias actuales
         let targetFreqs = [];   // Para almacenar las frecuencias objetivo
         let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
+        let amplitude;  // Analizador de amplitud
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
@@ -54,15 +54,19 @@
 
             // Delay espacioso
             globalDelay = new p5.Delay();
-            globalDelay.process(globalReverb,  0.05, 0.07, 250);  // Delay largo
+            globalDelay.process(globalReverb,  0.5, 0.7, 2500);  // Delay largo
 
             // Compresor ajustado para evitar saturación
             globalCompressor = new p5.Compressor();
-            globalCompressor.attack(0.2);
+            globalCompressor.attack(0.03);
             globalCompressor.release(0.5);  // Liberación rápida para controlar mejor los picos
             globalCompressor.threshold(-30);  // Umbral más bajo para mejor control de picos
             globalCompressor.ratio(6);
             globalCompressor.connect();
+
+            // Configurar el analizador de amplitud
+            amplitude = new p5.Amplitude();
+            amplitude.setInput(globalCompressor);  // Analiza el audio después del compresor
 
             for (let i = 0; i < 800; i++) {
                 particles.push(new Particle());
@@ -75,7 +79,7 @@
             // Crear osciladores
             for (let i = 0; i < 8; i++) {
                 let osc = new p5.Oscillator('sine');
-                let initialFreq = random(400, 800);  // Frecuencia inicial aleatoria
+                let initialFreq = random(200, 600);  // Frecuencia inicial aleatoria
                 osc.freq(initialFreq);  
                 osc.amp(0);  // Empieza sin sonido
                 osc.disconnect();
@@ -87,8 +91,6 @@
                 currentFreqs.push(initialFreq);  // Guardar la frecuencia inicial
                 targetFreqs.push(initialFreq);   // La frecuencia objetivo empieza igual que la inicial
             }
-
-            
 
             setInterval(changeFrequencies, 60000);  // Cambiar las frecuencias de los osciladores cada minuto
         }
@@ -102,6 +104,9 @@
             let numActiveParticles = 0;
 
             globalGainMod = map(sin(frameCount * 0.05), -1, 3, 0.01, 2);  // Subidas y bajadas constantes de ganancia
+
+            // Obtener el nivel de amplitud actual
+            let level = amplitude.getLevel();
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
@@ -120,17 +125,17 @@
                 particles[i].follow(flowfield);
                 particles[i].update();
                 particles[i].edges();  // Asegurar que las partículas envuelvan los bordes
-                particles[i].show();
+                particles[i].show(level);  // Pasar el nivel de amplitud a la función show()
 
                 if (particles[i].isNearCenter()) {
                     numActiveParticles++;
                 }
             }
 
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.02);  // Ganancia basada en partículas activas
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
             let attackTime = random(2, 6);  // Aparición aleatoria rápida
-            let releaseTime = random(8, 12);  // Desaparición lenta y suave
+            let releaseTime = random(8, 12);  // Desvanecimiento lento y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
@@ -166,7 +171,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.01, 4);  // Fade-in de 5 segundos
+                    globalOscillator[i].amp(0.1, 4);  // Fade-in de 4 segundos
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
@@ -222,11 +227,14 @@
                 return d < width / 3;  // Ajustar el rango según el comportamiento visual
             }
 
-            show() {
+            show(amplitudeLevel) {
                 let hueValue = map(sin(frameCount * 0.090 + this.pos.x * 0.001), -10, 1, 980, 980, 654, 224);
                 let saturationValue = map(this.pos.y, 0, height, 50, 100);
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
-                let alphaValue = map(dist(this.pos.x, this.pos.y, width / 2, height / 2), 0, width / 2, 255, 100);
+
+                // Ajustar la opacidad de las partículas en función de la amplitud del sonido
+                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
+                alphaValue = constrain(alphaValue, 0, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
                 stroke(192, 192, 192, alphaValue);
@@ -247,4 +255,5 @@
     </script>
 </body>
 </html>
+
 
