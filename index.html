@@ -137,12 +137,28 @@
             }
 
             // Aumentar baseAmp para incrementar el volumen al regresar
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);  // Aumentar el máximo a 0.5
+let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.4);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
+
+
+            // Ajustar el número de partículas en función del nivel de amplitud
+let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
+desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+
+// Ajustar el array de partículas
+if (particles.length < desiredNumParticles) {
+    let newParticles = desiredNumParticles - particles.length;
+    for (let i = 0; i < newParticles; i++) {
+        particles.push(new Particle());
+    }
+} else if (particles.length > desiredNumParticles) {
+    particles.splice(0, particles.length - desiredNumParticles);
+}
 
             // Reducir attackTime para que el sonido aparezca más rápidamente
             let attackTime = random(0.5, 2);  // Aparición más rápida
             let releaseTime = random(10, 20);  // Desvanecimiento lento y suave
+            
 
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
