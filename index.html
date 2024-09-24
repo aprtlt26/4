@@ -35,14 +35,13 @@
         let globalDelay;
         let globalCompressor;
         let globalOscillator = [];
-        let globalGainMod = 0;  // Para modular la ganancia general lentamente y constantemente
-        let currentFreqs = [];  // Para almacenar las frecuencias actuales
-        let targetFreqs = [];   // Para almacenar las frecuencias objetivo
-        let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
-        let amplitude;  // Analizador de amplitud
-        let lastIntensityChangeTime = 0;
-        let intensityChangeInterval = 5000; // Intervalo de cambio de intensidad en milisegundos (5 segundos)
-        let desiredIntensity = 0.5; // Intensidad inicial
+        let currentFreqs = [];
+        let targetFreqs = [];
+        let freqChangeDuration = 10000;
+        let amplitude;
+        let intensityTimer = 0;
+        let intensityInterval = 5000; // Intervalo de cambio de intensidad (5 segundos)
+        let intensity = 0.5;
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
@@ -53,23 +52,23 @@
 
             // Reverberación amplia y profunda
             globalReverb = new p5.Reverb();
-            globalReverb.set(50, 30);  // Reverb profundo
+            globalReverb.set(50, 30);
 
             // Delay espacioso
             globalDelay = new p5.Delay();
-            globalDelay.process(globalReverb,  0.5, 0.7, 2500);  // Delay largo
+            globalDelay.process(globalReverb,  0.5, 0.7, 2500);
 
             // Compresor ajustado para evitar saturación
             globalCompressor = new p5.Compressor();
             globalCompressor.attack(0.03);
-            globalCompressor.release(0.5);  // Liberación rápida para controlar mejor los picos
-            globalCompressor.threshold(-30);  // Umbral más bajo para mejor control de picos
+            globalCompressor.release(0.5);
+            globalCompressor.threshold(-30);
             globalCompressor.ratio(6);
             globalCompressor.connect();
 
             // Configurar el analizador de amplitud
             amplitude = new p5.Amplitude();
-            amplitude.setInput(globalCompressor);  // Analiza el audio después del compresor
+            amplitude.setInput(globalCompressor);
 
             for (let i = 0; i < 800; i++) {
                 particles.push(new Particle());
@@ -82,20 +81,20 @@
             // Crear osciladores
             for (let i = 0; i < 8; i++) {
                 let osc = new p5.Oscillator('sine');
-                let initialFreq = random(200, 600);  // Frecuencia inicial aleatoria
+                let initialFreq = random(200, 600);
                 osc.freq(initialFreq);  
-                osc.amp(0);  // Empieza sin sonido
+                osc.amp(0);
                 osc.disconnect();
                 osc.connect(globalReverb);
                 osc.connect(globalDelay);
                 osc.connect(globalCompressor);
                 osc.start();
                 globalOscillator.push(osc);
-                currentFreqs.push(initialFreq);  // Guardar la frecuencia inicial
-                targetFreqs.push(initialFreq);   // La frecuencia objetivo empieza igual que la inicial
+                currentFreqs.push(initialFreq);
+                targetFreqs.push(initialFreq);
             }
 
-            setInterval(changeFrequencies, 30000);  // Cambiar las frecuencias de los osciladores cada 30 segundos
+            setInterval(changeFrequencies, 30000);  // Cambiar las frecuencias cada 30 segundos
         }
 
         function draw() {
@@ -106,7 +105,7 @@
             let yoff = 0;
 
             // Modulación aleatoria de la ganancia global usando ruido
-            globalGainMod = map(noise(frameCount * 0.01), 0, 1, 0.01, 0.3);
+            let globalGainMod = map(noise(frameCount * 0.02), 0, 1, 0.01, 0.3);
 
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
@@ -131,41 +130,33 @@
             for (let i = 0; i < particles.length; i++) {
                 particles[i].follow(flowfield);
                 particles[i].update();
-                particles[i].edges();  // Asegurar que las partículas envuelvan los bordes
-                particles[i].show(level);  // Pasar el nivel de amplitud a la función show()
+                particles[i].edges();
+                particles[i].show(level);
             }
 
-            // Ajustar el volumen global y el número de partículas en intervalos más cortos
-            let currentTime = millis();
-            if (currentTime - lastIntensityChangeTime > intensityChangeInterval) {
-                lastIntensityChangeTime = currentTime;
-                // Generar un nuevo nivel de intensidad aleatorio
-                desiredIntensity = random(0.1, 1);
-                // Ajustar el número de partículas y volumen global según la nueva intensidad
-                adjustParticleCount(desiredIntensity);
-                adjustGlobalVolume(desiredIntensity);
+            // Cambiar la intensidad con más frecuencia
+            if (millis() - intensityTimer > intensityInterval) {
+                intensityTimer = millis();
+                intensity = random(0.1, 1);
+
+                adjustParticleCount(intensity);
+                adjustGlobalVolume(intensity);
             }
 
-            // Ajustar attackTime y releaseTime para cambios suaves en el sonido
-            let attackTime = random(0.5, 2);
-            let releaseTime = random(5, 10);
+            // Ajustar attackTime y releaseTime para cambios perceptibles en el sonido
+            let attackTime = 0.5;
+            let releaseTime = 1;
 
             for (let i = 0; i < globalOscillator.length; i++) {
-                globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], (frameCount % freqChangeDuration) / freqChangeDuration));  // Cambio suave de frecuencia
+                globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], (frameCount % freqChangeDuration) / freqChangeDuration));
 
-                if (random(1) > 0.4) {  // Fragmentación aleatoria
-                    globalOscillator[i].amp(globalGainMod * desiredIntensity, attackTime);  // Aparición fragmentada
-                    setTimeout(() => {
-                        globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento evanescente
-                    }, attackTime * 1000);
-                }
+                globalOscillator[i].amp(globalGainMod * intensity, attackTime);
             }
 
-            zoff += 0.2;  // Continuar desplazando el ruido para las partículas
+            zoff += 0.2;
         }
 
         function adjustParticleCount(intensity) {
-            // Ajustar el número de partículas en función de la intensidad
             let desiredNumParticles = map(intensity, 0, 1, 200, 1000);
             desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
 
@@ -180,20 +171,19 @@
         }
 
         function adjustGlobalVolume(intensity) {
-            // Ajustar la ganancia global en función de la intensidad
-            globalGainMod = map(intensity, 0, 1, 0.01, 0.3);
+            // La ganancia global ya se ajusta en draw() usando noise y la intensidad
         }
 
         // Función para cambiar las frecuencias de los osciladores y reiniciar partículas
         function changeFrequencies() {
             for (let i = 0; i < globalOscillator.length; i++) {
-                currentFreqs[i] = targetFreqs[i];  // Actualizar la frecuencia actual
-                targetFreqs[i] = random(300, 500);  // Asignar una nueva frecuencia aleatoria como objetivo
+                currentFreqs[i] = targetFreqs[i];
+                targetFreqs[i] = random(300, 500);
             }
 
-            // Reiniciar las partículas desde posiciones aleatorias
+            // Reiniciar las partículas
             for (let i = 0; i < particles.length; i++) {
-                particles[i].reset();  // Llamar a la función para reiniciar cada partícula
+                particles[i].reset();
             }
         }
 
@@ -205,7 +195,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.01, 5);  // Fade-in de 5 segundos
+                    globalOscillator[i].amp(0.01, 2);  // Fade-in de 2 segundos
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
@@ -234,13 +224,12 @@
 
             update() {
                 this.vel.add(this.acc);
-                this.vel.limit(maxSpeed);  // Usar maxSpeed actualizado
+                this.vel.limit(maxSpeed);
                 this.pos.add(this.vel);
                 this.acc.mult(0);
             }
 
             edges() {
-                // Asegurar que las partículas reaparezcan en el borde opuesto
                 if (this.pos.x > width) this.pos.x = 0;
                 if (this.pos.x < 0) this.pos.x = width;
                 if (this.pos.y > height) this.pos.y = 0;
@@ -248,7 +237,6 @@
             }
 
             reset() {
-                // Reiniciar la partícula a una nueva posición y velocidad aleatorias
                 this.pos = createVector(random(width), random(height));
                 this.vel = createVector(0, 0);
                 this.acc = createVector(0, 0);
@@ -284,7 +272,6 @@
     </script>
 </body>
 </html>
-
 
 
 
