@@ -107,6 +107,9 @@
             // Modulación aleatoria de la ganancia global usando ruido
             let globalGainMod = map(noise(frameCount * 0.02), 0, 1, 0.01, 0.3);
 
+            // Reducir la ganancia general para evitar saturación
+            globalGainMod *= 0.3; // Ajuste de volumen general
+
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
 
@@ -140,7 +143,7 @@
                 intensity = random(0.1, 1);
 
                 adjustParticleCount(intensity);
-                adjustGlobalVolume(intensity);
+                // No ajustar el volumen aquí para mantener la intensidad visual
             }
 
             // Ajustar attackTime y releaseTime para cambios perceptibles en el sonido
@@ -150,6 +153,7 @@
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], (frameCount % freqChangeDuration) / freqChangeDuration));
 
+                // Aplicar la ganancia general reducida
                 globalOscillator[i].amp(globalGainMod * intensity, attackTime);
             }
 
@@ -168,10 +172,6 @@
             } else if (particles.length > desiredNumParticles) {
                 particles.splice(0, particles.length - desiredNumParticles);
             }
-        }
-
-        function adjustGlobalVolume(intensity) {
-            // La ganancia global ya se ajusta en draw() usando noise y la intensidad
         }
 
         // Función para cambiar las frecuencias de los osciladores y reiniciar partículas
@@ -195,7 +195,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.01, 2);  // Fade-in de 2 segundos
+                    globalOscillator[i].amp(0.005, 2);  // Fade-in de 2 segundos con ganancia reducida
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
