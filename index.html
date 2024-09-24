@@ -249,6 +249,8 @@ if (particles.length < desiredNumParticles) {
                 return d < width / 3;  // Ajustar el rango según el comportamiento visual
             }
 
+            
+
             show(amplitudeLevel) {
                 let hueValue = map(sin(frameCount * 0.090 + this.pos.x * 0.001), -10, 1, 980, 980, 654, 224);
                 let saturationValue = map(this.pos.y, 0, height, 50, 100);
