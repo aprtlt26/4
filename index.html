@@ -40,6 +40,8 @@
         let targetFreqs = [];   // Para almacenar las frecuencias objetivo
         let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
         let amplitude;  // Analizador de amplitud
+        let lastIntensityChangeTime = 0;
+        let intensityChangeInterval = 20000; // Intervalo de cambio de intensidad en milisegundos (20 segundos)
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
@@ -103,12 +105,13 @@
             let yoff = 0;
             let numActiveParticles = 0;
 
-            globalGainMod = map(sin(frameCount * 0.05), -1, 0.3, 0.01, 0.2);  // Subidas y bajadas constantes de ganancia
+            // Modulación aleatoria de la ganancia global usando ruido
+            globalGainMod = map(noise(frameCount * 0.005), 0, 1, 0.01, 0.2);
 
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
 
-            // Ajustar maxSpeed en función del nivel de amplitud (opcional)
+            // Ajustar maxSpeed en función del nivel de amplitud
             maxSpeed = map(level, 0, 0.1, 0.5, 2);
             maxSpeed = constrain(maxSpeed, 0.5, 2);
 
@@ -137,32 +140,28 @@
             }
 
             // Aumentar baseAmp para incrementar el volumen al regresar
-let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.3);  // Ganancia basada en partículas activas
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.3);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
 
+            // Ajustar el número de partículas en función de la intensidad deseada
+            let currentTime = millis();
+            if (currentTime - lastIntensityChangeTime > intensityChangeInterval) {
+                lastIntensityChangeTime = currentTime;
+                // Generar un nuevo nivel de intensidad aleatorio
+                desiredIntensity = random(0.1, 1);
+                // Ajustar el número de partículas según la nueva intensidad
+                adjustParticleCount(desiredIntensity);
+                // Ajustar el volumen global según la nueva intensidad
+                adjustGlobalVolume(desiredIntensity);
+            }
 
-            // Ajustar el número de partículas en función del nivel de amplitud
-let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
-desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
-
-// Ajustar el array de partículas
-if (particles.length < desiredNumParticles) {
-    let newParticles = desiredNumParticles - particles.length;
-    for (let i = 0; i < newParticles; i++) {
-        particles.push(new Particle());
-    }
-} else if (particles.length > desiredNumParticles) {
-    particles.splice(0, particles.length - desiredNumParticles);
-}
-
-            // Reducir attackTime para que el sonido aparezca más rápidamente
-            let attackTime = random(0.5, 2);  // Aparición más rápida
-            let releaseTime = random(10, 20);  // Desvanecimiento lento y suave
-            
+            // Ajustar attackTime y releaseTime para cambios suaves en el sonido
+            let attackTime = random(0.5, 2);
+            let releaseTime = random(10, 20);
 
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
-               
+
                 if (random(1) > 0.4) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
@@ -172,6 +171,26 @@ if (particles.length < desiredNumParticles) {
             }
 
             zoff += 0.2;  // Continuar desplazando el ruido para las partículas
+        }
+
+        function adjustParticleCount(intensity) {
+            // Ajustar el número de partículas en función de la intensidad
+            let desiredNumParticles = map(intensity, 0, 1, 200, 1000);
+            desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+
+            if (particles.length < desiredNumParticles) {
+                let newParticles = desiredNumParticles - particles.length;
+                for (let i = 0; i < newParticles; i++) {
+                    particles.push(new Particle());
+                }
+            } else if (particles.length > desiredNumParticles) {
+                particles.splice(0, particles.length - desiredNumParticles);
+            }
+        }
+
+        function adjustGlobalVolume(intensity) {
+            // Ajustar la ganancia global en función de la intensidad
+            globalGainMod = map(intensity, 0, 1, 0.01, 0.2);
         }
 
         // Función para cambiar las frecuencias de los osciladores y reiniciar partículas
@@ -278,7 +297,6 @@ if (particles.length < desiredNumParticles) {
     </script>
 </body>
 </html>
-
 
 
 
