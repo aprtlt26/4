@@ -264,14 +264,17 @@ if (particles.length < desiredNumParticles) {
                 stroke(192, 192, 192, alphaValue);
                 strokeWeight(1);
 
-                beginShape();
-                let numPoints = floor(random(3, 6));
-                for (let i = 0; i < numPoints; i++) {
-                    let offsetX = random(-30, 30);
-                    let offsetY = random(-10, 20);
-                    curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
-                }
+        
+beginShape();
+let numPoints = floor(random(3, 6));
+for (let i = 0; i < numPoints; i++) {
+    let offsetX = random(-30, 30) * sizeMultiplier;
+    let offsetY = random(-10, 20) * sizeMultiplier;
+    curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
+}
                 endShape(CLOSE);
+
+                
 
                 this.prevPos = this.pos.copy();
             }
