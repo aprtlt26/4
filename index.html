@@ -195,10 +195,13 @@
 
         class Particle {
             constructor() {
-                this.pos = createVector(random(width), random(height));
-                this.vel = createVector(0, 0);
-                this.acc = createVector(0, 0);
-                this.prevPos = this.pos.copy();
+             this.pos = createVector(random(width), random(height));  // Posición inicial aleatoria
+        this.vel = createVector(0, 0);  // Velocidad inicial
+        this.acc = createVector(0, 0);  // Aceleración inicial
+        this.maxSpeed = maxSpeed;  // Velocidad máxima
+        this.prevPos = this.pos.copy();  // Posición previa para trazos
+        this.alpha = 0;  // Opacidad inicial
+
             }
 
             follow(vectors) {
