@@ -145,8 +145,8 @@ maxSpeed = constrain(maxSpeed, 0.5, 3);
 
 
             // Ajustar el número de partículas en función del nivel de amplitud
-let desiredNumParticles = map(level, 0, 0.05, 200, 1000);
-desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+let desiredNumParticles = map(level, 0, 0.05, 200, 800);
+desiredNumParticles = floor(constrain(desiredNumParticles, 200, 800));
 
 
 
@@ -161,10 +161,9 @@ if (particles.length < desiredNumParticles) {
     particles.splice(0, particles.length - desiredNumParticles);
 }
 
-            // Reducir attackTime para que el sonido aparezca más rápidamente
-            let attackTime = random(0.5, 2);  // Aparición más rápida
-            let releaseTime = random(10, 20);  // Desvanecimiento lento y suave
-            
+  let attackTime = random(0.2, 1);
+let releaseTime = random(5, 15);
+
 
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
