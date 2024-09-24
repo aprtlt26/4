@@ -40,12 +40,10 @@
         let targetFreqs = [];   // Para almacenar las frecuencias objetivo
         let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
         let amplitude;  // Analizador de amplitud
-        let bgColor = 255;  // Color de fondo inicial (blanco)
-        let particleSpeedMultiplier = 1;  // Multiplicador de velocidad de partículas
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
-            colorMode(HSB, 360, 100, 100, 100);  // Ajustar el modo de color
+            colorMode(HSB, 660, 900, 100, 10000);
             cols = floor(width / scl);
             rows = floor(height / scl);
             flowfield = new Array(cols * rows);
@@ -74,7 +72,7 @@
                 particles.push(new Particle());
             }
 
-            background(bgColor);
+            background(255);
 
             noLoop(); // Pausar hasta que se haga clic
 
@@ -100,22 +98,15 @@
         function draw() {
             if (!audioStarted) return;
 
-            // Obtener el nivel de amplitud actual
-            let level = amplitude.getLevel();
-
-            // Ajustar el color de fondo y la velocidad de las partículas en función del nivel de amplitud
-            bgColor = map(level, 0, 0.1, 200, 255);  // De gris claro a blanco
-            bgColor = constrain(bgColor, 200, 255);
-            particleSpeedMultiplier = map(level, 0, 0.1, 0.5, 1);
-            particleSpeedMultiplier = constrain(particleSpeedMultiplier, 0.5, 1);
-
-            background(bgColor, 10);  // Fondo con transparencia para efecto de estela
+            background(10, 50);
 
             let yoff = 0;
             let numActiveParticles = 0;
 
-            // Subidas y bajadas constantes de ganancia, pero más suaves
-            globalGainMod = map(sin(frameCount * 0.01), -1, 1, 0.05, 0.2);
+            globalGainMod = map(sin(frameCount * 0.05), -1, 3, 0.01, 2);  // Subidas y bajadas constantes de ganancia
+
+            // Obtener el nivel de amplitud actual
+            let level = amplitude.getLevel();
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
@@ -141,29 +132,23 @@
                 }
             }
 
-            // Ganancia basada en partículas activas y nivel de amplitud
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.05);
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-
-            // Hacer las transiciones más lentas
-            let attackTime = 5;  // Aparición lenta
-            let releaseTime = 10;  // Desvanecimiento lento
+            let attackTime = random(2, 6);  // Aparición aleatoria rápida
+            let releaseTime = random(8, 12);  // Desvanecimiento lento y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
-                currentFreqs[i] = lerp(currentFreqs[i], targetFreqs[i], 0.001);
-                globalOscillator[i].freq(currentFreqs[i]);
-
-                if (random(1) > 0.6) {  // Fragmentación aleatoria
-                    globalOscillator[i].amp(targetAmp, attackTime);  // Aparición lenta
+                globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
+               
+                if (random(1) > 0.4) {  // Fragmentación aleatoria
+                    globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
-                        globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento lento
+                        globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento evanescente
                     }, attackTime * 1000);
-                } else {
-                    globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento lento
                 }
             }
 
-            zoff += 0.01;  // Movimiento más lento del ruido para las partículas
+            zoff += 0.2;  // Continuar desplazando el ruido para las partículas
         }
 
         // Función para cambiar las frecuencias de los osciladores y reiniciar partículas
@@ -186,7 +171,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.05, 10);  // Fade-in de 10 segundos
+                    globalOscillator[i].amp(0.1, 4);  // Fade-in de 4 segundos
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
@@ -215,7 +200,6 @@
             }
 
             update() {
-                this.maxSpeed = maxSpeed * particleSpeedMultiplier;  // Actualizar la velocidad máxima según el nivel de amplitud
                 this.vel.add(this.acc);
                 this.vel.limit(this.maxSpeed);
                 this.pos.add(this.vel);
@@ -244,13 +228,13 @@
             }
 
             show(amplitudeLevel) {
-                let hueValue = map(sin(frameCount * 0.090 + this.pos.x * 0.001), -1, 1, 0, 360);
+                let hueValue = map(sin(frameCount * 0.090 + this.pos.x * 0.001), -10, 1, 980, 980, 654, 224);
                 let saturationValue = map(this.pos.y, 0, height, 50, 100);
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
                 // Ajustar la opacidad de las partículas en función de la amplitud del sonido
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);
-                alphaValue = constrain(alphaValue, 50, 255);
+                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
+                alphaValue = constrain(alphaValue, 0, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
                 stroke(192, 192, 192, alphaValue);
@@ -268,13 +252,10 @@
                 this.prevPos = this.pos.copy();
             }
         }
-
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
-        }
     </script>
 </body>
 </html>
+
 
 
 
