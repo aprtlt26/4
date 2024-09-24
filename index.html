@@ -103,7 +103,7 @@
             let yoff = 0;
             let numActiveParticles = 0;
 
-            globalGainMod = map(sin(frameCount * 0.05), -1, 0.3, 0.01, 0.2);  // Subidas y bajadas constantes de ganancia
+globalGainMod = map(noise(frameCount * 0.01), 0, 1, 0.01, 0.2);
 
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
