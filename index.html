@@ -103,15 +103,14 @@
             let yoff = 0;
             let numActiveParticles = 0;
 
-            // Modulación más aleatoria de la ganancia global usando ruido
-            globalGainMod = map(noise(frameCount * 0.01), 0, 1, 0.01, 0.2);
+            globalGainMod = map(sin(frameCount * 0.05), -1, 0.3, 0.01, 0.2);  // Subidas y bajadas constantes de ganancia
 
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
 
-            // Ajustar maxSpeed en función del nivel de amplitud para una respuesta más marcada
-            maxSpeed = map(level, 0, 0.05, 0.5, 3);
-            maxSpeed = constrain(maxSpeed, 0.5, 3);
+            // Ajustar maxSpeed en función del nivel de amplitud (opcional)
+            maxSpeed = map(level, 0, 0.1, 0.5, 2);
+            maxSpeed = constrain(maxSpeed, 0.5, 2);
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
@@ -138,28 +137,29 @@
             }
 
             // Aumentar baseAmp para incrementar el volumen al regresar
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);  // Ganancia basada en partículas activas
+let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.3);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            targetAmp = constrain(targetAmp, 0, 0.3);  // Evitar saturación del audio
 
-            // Ajustar el número de partículas en función del nivel de amplitud para una respuesta más marcada
-            let desiredNumParticles = map(level, 0, 0.05, 200, 1000);
-            desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
 
-            // Ajustar el array de partículas
-            if (particles.length < desiredNumParticles) {
-                let newParticles = desiredNumParticles - particles.length;
-                for (let i = 0; i < newParticles; i++) {
-                    particles.push(new Particle());
-                }
-            } else if (particles.length > desiredNumParticles) {
-                particles.splice(0, particles.length - desiredNumParticles);
-            }
+            // Ajustar el número de partículas en función del nivel de amplitud
+let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
+desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
 
-            // Ajustar attackTime y releaseTime para cambios más marcados en el sonido
-            let attackTime = random(0.2, 1);  // Aparición más rápida
-            let releaseTime = random(5, 15);  // Desvanecimiento suave
-                
+// Ajustar el array de partículas
+if (particles.length < desiredNumParticles) {
+    let newParticles = desiredNumParticles - particles.length;
+    for (let i = 0; i < newParticles; i++) {
+        particles.push(new Particle());
+    }
+} else if (particles.length > desiredNumParticles) {
+    particles.splice(0, particles.length - desiredNumParticles);
+}
+
+            // Reducir attackTime para que el sonido aparezca más rápidamente
+            let attackTime = random(0.5, 2);  // Aparición más rápida
+            let releaseTime = random(10, 20);  // Desvanecimiento lento y suave
+            
+
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
                
@@ -254,8 +254,8 @@
                 let saturationValue = map(this.pos.y, 0, height, 50, 100);
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
-                // Ajustar la opacidad de las partículas en función de la amplitud del sonido con mayor sensibilidad
-                let alphaValue = map(amplitudeLevel, 0, 0.05, 50, 255);  // Más sensible a cambios pequeños
+                // Ajustar la opacidad de las partículas en función de la amplitud del sonido
+                let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Valor mínimo aumentado a 50
                 alphaValue = constrain(alphaValue, 50, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
@@ -278,6 +278,7 @@
     </script>
 </body>
 </html>
+
 
 
 
