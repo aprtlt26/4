@@ -40,7 +40,6 @@
         let targetFreqs = [];   // Para almacenar las frecuencias objetivo
         let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
         let amplitude;  // Analizador de amplitud
-        let currentNumParticles = 800;  // Número actual de partículas
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
@@ -69,7 +68,8 @@
             amplitude = new p5.Amplitude();
             amplitude.setInput(globalCompressor);  // Analiza el audio después del compresor
 
-            for (let i = 0; i < currentNumParticles; i++) {
+            // Crear partículas
+            for (let i = 0; i < 800; i++) {
                 particles.push(new Particle());
             }
 
@@ -81,7 +81,7 @@
             for (let i = 0; i < 8; i++) {
                 let osc = new p5.Oscillator('sine');
                 let initialFreq = random(200, 600);  // Frecuencia inicial aleatoria
-                osc.freq(initialFreq);  
+                osc.freq(initialFreq);
                 osc.amp(0);  // Empieza sin sonido
                 osc.disconnect();
                 osc.connect(globalReverb);
@@ -108,27 +108,6 @@
 
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
-
-            // Ajustar el número de partículas en función del nivel de amplitud de manera suave
-            let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
-            desiredNumParticles = constrain(desiredNumParticles, 200, 1000);
-
-            // Suavizar la transición del número de partículas
-            currentNumParticles = lerp(currentNumParticles, desiredNumParticles, 0.02);
-            let targetNumParticles = floor(currentNumParticles);
-
-            // Añadir o eliminar partículas gradualmente
-            if (particles.length < targetNumParticles) {
-                let newParticles = targetNumParticles - particles.length;
-                newParticles = min(newParticles, 5);  // Limitar el número de partículas añadidas por frame
-                for (let i = 0; i < newParticles; i++) {
-                    particles.push(new Particle());
-                }
-            } else if (particles.length > targetNumParticles) {
-                let particlesToRemove = particles.length - targetNumParticles;
-                particlesToRemove = min(particlesToRemove, 5);  // Limitar el número de partículas eliminadas por frame
-                particles.splice(0, particlesToRemove);
-            }
 
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
@@ -161,7 +140,7 @@
 
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
-               
+
                 if (random(1) > 0.4) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
@@ -207,6 +186,7 @@
                 this.acc = createVector(0, 0);
                 this.maxSpeed = maxSpeed;
                 this.prevPos = this.pos.copy();
+                this.alpha = 0;  // Opacidad inicial
             }
 
             follow(vectors) {
@@ -242,6 +222,7 @@
                 this.vel = createVector(0, 0);
                 this.acc = createVector(0, 0);
                 this.prevPos = this.pos.copy();
+                this.alpha = 0;  // Reiniciar la opacidad
             }
 
             isNearCenter() {
@@ -254,12 +235,15 @@
                 let saturationValue = map(this.pos.y, 0, height, 50, 100);
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
-                // Ajustar la opacidad de las partículas en función de la amplitud del sonido
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
-                alphaValue = constrain(alphaValue, 0, 255);
+                // Objetivo de opacidad basado en el nivel de amplitud
+                let targetAlpha = map(amplitudeLevel, 0, 0.1, 0, 255);
+                targetAlpha = constrain(targetAlpha, 0, 255);
 
-                fill(hueValue, saturationValue, brightnessValue, alphaValue);
-                stroke(192, 192, 192, alphaValue);
+                // Suavizar la transición de opacidad
+                this.alpha = lerp(this.alpha, targetAlpha, 0.05);
+
+                fill(hueValue, saturationValue, brightnessValue, this.alpha);
+                stroke(192, 192, 192, this.alpha);
                 strokeWeight(1);
 
                 beginShape();
@@ -274,14 +258,9 @@
                 this.prevPos = this.pos.copy();
             }
         }
-
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
-        }
     </script>
 </body>
 </html>
-
 
 
 
