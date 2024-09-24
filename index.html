@@ -134,18 +134,18 @@
 
             let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            let attackTime = random(2, 10);  // Aparición aleatoria rápida
-            let releaseTime = random(10, 25);  // Desvanecimiento lento y suave
+            let attackTime = random(2, 8);  // Aparición aleatoria rápida
+            let releaseTime = random(15, 25);  // Desvanecimiento lento y suave
 
             
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
                
-                if (random(1) > 0.4) {  // Fragmentación aleatoria
+                if (random(1) > 0.7) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
                         globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento evanescente
-                    }, attackTime * 1000);
+                    }, attackTime * 100);
                 }
             }
 
