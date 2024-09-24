@@ -144,8 +144,11 @@ let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.3);  // Ganancia
 
 
             // Ajustar el número de partículas en función del nivel de amplitud
-let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
+let desiredNumParticles = map(level, 0, 0.05, 200, 1000);
 desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+
+
+
 
 // Ajustar el array de partículas
 if (particles.length < desiredNumParticles) {
