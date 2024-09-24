@@ -40,6 +40,7 @@
         let targetFreqs = [];   // Para almacenar las frecuencias objetivo
         let freqChangeDuration = 10000;  // Duración del cambio de frecuencia (10 segundos)
         let amplitude;  // Analizador de amplitud
+        let currentNumParticles = 800;  // Número actual de partículas
 
         function setup() {
             createCanvas(windowWidth, windowHeight);
@@ -68,7 +69,7 @@
             amplitude = new p5.Amplitude();
             amplitude.setInput(globalCompressor);  // Analiza el audio después del compresor
 
-            for (let i = 0; i < 800; i++) {
+            for (let i = 0; i < currentNumParticles; i++) {
                 particles.push(new Particle());
             }
 
@@ -108,18 +109,25 @@
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
 
-            // Ajustar el número de partículas en función del nivel de amplitud
+            // Ajustar el número de partículas en función del nivel de amplitud de manera suave
             let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
-            desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+            desiredNumParticles = constrain(desiredNumParticles, 200, 1000);
 
-            // Ajustar el array de partículas
-            if (particles.length < desiredNumParticles) {
-                let newParticles = desiredNumParticles - particles.length;
+            // Suavizar la transición del número de partículas
+            currentNumParticles = lerp(currentNumParticles, desiredNumParticles, 0.02);
+            let targetNumParticles = floor(currentNumParticles);
+
+            // Añadir o eliminar partículas gradualmente
+            if (particles.length < targetNumParticles) {
+                let newParticles = targetNumParticles - particles.length;
+                newParticles = min(newParticles, 5);  // Limitar el número de partículas añadidas por frame
                 for (let i = 0; i < newParticles; i++) {
                     particles.push(new Particle());
                 }
-            } else if (particles.length > desiredNumParticles) {
-                particles.splice(0, particles.length - desiredNumParticles);
+            } else if (particles.length > targetNumParticles) {
+                let particlesToRemove = particles.length - targetNumParticles;
+                particlesToRemove = min(particlesToRemove, 5);  // Limitar el número de partículas eliminadas por frame
+                particles.splice(0, particlesToRemove);
             }
 
             for (let y = 0; y < rows; y++) {
@@ -146,10 +154,9 @@
                 }
             }
 
-            // Aumentar baseAmp para incrementar el volumen al regresar
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);  // Aumentar el máximo a 0.5
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            let attackTime = random(0.5, 2);  // Aparición más rápida
+            let attackTime = random(2, 10);  // Aparición aleatoria
             let releaseTime = random(10, 20);  // Desvanecimiento lento y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
@@ -198,6 +205,7 @@
                 this.pos = createVector(random(width), random(height));
                 this.vel = createVector(0, 0);
                 this.acc = createVector(0, 0);
+                this.maxSpeed = maxSpeed;
                 this.prevPos = this.pos.copy();
             }
 
@@ -215,7 +223,7 @@
 
             update() {
                 this.vel.add(this.acc);
-                this.vel.limit(maxSpeed);  // Usar maxSpeed actualizado
+                this.vel.limit(this.maxSpeed);
                 this.pos.add(this.vel);
                 this.acc.mult(0);
             }
@@ -246,23 +254,19 @@
                 let saturationValue = map(this.pos.y, 0, height, 50, 100);
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
-                // Ajustar el tamaño en función del nivel de amplitud
-                let sizeMultiplier = map(amplitudeLevel, 0, 0.1, 0.5, 2);
-                sizeMultiplier = constrain(sizeMultiplier, 0.5, 2);
-
-                // Ajustar la opacidad de las partículas
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Valor mínimo aumentado a 50
-                alphaValue = constrain(alphaValue, 50, 255);
+                // Ajustar la opacidad de las partículas en función de la amplitud del sonido
+                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
+                alphaValue = constrain(alphaValue, 0, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
                 stroke(192, 192, 192, alphaValue);
-                strokeWeight(1 * sizeMultiplier);
+                strokeWeight(1);
 
                 beginShape();
                 let numPoints = floor(random(3, 6));
                 for (let i = 0; i < numPoints; i++) {
-                    let offsetX = random(-30, 30) * sizeMultiplier;
-                    let offsetY = random(-10, 20) * sizeMultiplier;
+                    let offsetX = random(-30, 30);
+                    let offsetY = random(-10, 20);
                     curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
                 }
                 endShape(CLOSE);
