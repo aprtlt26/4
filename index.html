@@ -134,14 +134,14 @@
 
             let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            let attackTime = random(2, 8);  // Aparición aleatoria rápida
+            let attackTime = random(2, 7);  // Aparición aleatoria rápida
             let releaseTime = random(15, 25);  // Desvanecimiento lento y suave
 
             
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
                
-                if (random(1) > 0.7) {  // Fragmentación aleatoria
+                if (random(1) > 0.9) {  // Fragmentación aleatoria
                     globalOscillator[i].amp(targetAmp, attackTime);  // Aparición fragmentada
                     setTimeout(() => {
                         globalOscillator[i].amp(0, releaseTime);  // Desvanecimiento evanescente
@@ -234,7 +234,7 @@
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
                 // Ajustar la opacidad de las partículas en función de la amplitud del sonido
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
+                let alphaValue = map(amplitudeLevel, 0, 0.0, 0, 255);
                 alphaValue = constrain(alphaValue, 0, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
