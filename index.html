@@ -142,6 +142,11 @@
                 intensityTimer = millis();
                 intensity = random(0.1, 1);
 
+                // Si la intensidad es muy baja, establecerla en cero para lograr silencio total
+                if (intensity < 0.15) {
+                    intensity = 0;
+                }
+
                 adjustParticleCount(intensity);
                 // No ajustar el volumen aquí para mantener la intensidad visual
             }
@@ -153,16 +158,20 @@
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], (frameCount % freqChangeDuration) / freqChangeDuration));
 
-                // Aplicar la ganancia general reducida
-                globalOscillator[i].amp(globalGainMod * intensity, attackTime);
+                // Aplicar silencio total cuando la intensidad es cero
+                if (intensity === 0) {
+                    globalOscillator[i].amp(0, attackTime);
+                } else {
+                    globalOscillator[i].amp(globalGainMod * intensity, attackTime);
+                }
             }
 
             zoff += 0.2;
         }
 
         function adjustParticleCount(intensity) {
-            let desiredNumParticles = map(intensity, 0, 1, 200, 1000);
-            desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+            let desiredNumParticles = map(intensity, 0, 1, 0, 1000); // Cero partículas cuando intensidad es cero
+            desiredNumParticles = floor(constrain(desiredNumParticles, 0, 1000));
 
             if (particles.length < desiredNumParticles) {
                 let newParticles = desiredNumParticles - particles.length;
@@ -272,7 +281,6 @@
     </script>
 </body>
 </html>
-
 
 
 
