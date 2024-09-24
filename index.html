@@ -134,7 +134,7 @@
 
             let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            let attackTime = random(2, 6);  // Aparición aleatoria rápida
+            let attackTime = random(1, 8);  // Aparición aleatoria rápida
             let releaseTime = random(8, 12);  // Desvanecimiento lento y suave
 
             for (let i = 0; i < globalOscillator.length; i++) {
@@ -171,7 +171,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.1, 4);  // Fade-in de 4 segundos
+                    globalOscillator[i].amp(0.01, 5);  // Fade-in de 4 segundos
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
@@ -233,7 +233,7 @@
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
                 // Ajustar la opacidad de las partículas en función de la amplitud del sonido
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
+                let alphaValue = map(amplitudeLevel, 0, 0.01, 0, 255);
                 alphaValue = constrain(alphaValue, 0, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
