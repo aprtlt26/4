@@ -109,8 +109,8 @@
             let level = amplitude.getLevel();
 
             // Ajustar el número de partículas en función del nivel de amplitud
-            let desiredNumParticles = map(level, 0, 0.1, 200, 1000);
-            desiredNumParticles = floor(constrain(desiredNumParticles, 200, 1000));
+            let desiredNumParticles = map(level, 0, 0.1, 200, 800);
+            desiredNumParticles = floor(constrain(desiredNumParticles, 200, 800));
 
             // Ajustar el array de partículas
             if (particles.length < desiredNumParticles) {
