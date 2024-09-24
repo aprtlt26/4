@@ -138,9 +138,8 @@ maxSpeed = constrain(maxSpeed, 0.5, 3);
                 }
             }
 
-            // Aumentar baseAmp para incrementar el volumen al regresar
-let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.3);  // Ganancia basada en partículas activas
-            let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
+let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);
+targetAmp = constrain(targetAmp, 0, 0.3);
 
 
             // Ajustar el número de partículas en función del nivel de amplitud
