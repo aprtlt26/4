@@ -108,6 +108,10 @@
             // Obtener el nivel de amplitud actual
             let level = amplitude.getLevel();
 
+            // Ajustar maxSpeed en función del nivel de amplitud (opcional)
+            maxSpeed = map(level, 0, 0.1, 0.5, 2);
+            maxSpeed = constrain(maxSpeed, 0.5, 2);
+
             for (let y = 0; y < rows; y++) {
                 let xoff = 0;
                 for (let x = 0; x < cols; x++) {
@@ -132,12 +136,14 @@
                 }
             }
 
-            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.2);  // Ganancia basada en partículas activas
+            // Aumentar baseAmp para incrementar el volumen al regresar
+            let baseAmp = map(numActiveParticles, 0, particles.length, 0, 0.5);  // Aumentar el máximo a 0.5
             let targetAmp = baseAmp * globalGainMod;  // Modulación global aplicada a la ganancia
-            let attackTime = random(2, 10);  // Aparición aleatoria rápida
+
+            // Reducir attackTime para que el sonido aparezca más rápidamente
+            let attackTime = random(0.5, 2);  // Aparición más rápida
             let releaseTime = random(10, 20);  // Desvanecimiento lento y suave
 
-            
             for (let i = 0; i < globalOscillator.length; i++) {
                 globalOscillator[i].freq(lerp(currentFreqs[i], targetFreqs[i], frameCount / freqChangeDuration));  // Cambio suave de frecuencia
                
@@ -172,7 +178,7 @@
 
                 // Aplicar un fade-in suave a todos los osciladores
                 for (let i = 0; i < globalOscillator.length; i++) {
-                    globalOscillator[i].amp(0.01, 5);  // Fade-in de 4 segundos
+                    globalOscillator[i].amp(0.01, 5);  // Fade-in de 5 segundos
                 }
 
                 loop();  // Iniciar la animación después de que se haga clic
@@ -184,7 +190,6 @@
                 this.pos = createVector(random(width), random(height));
                 this.vel = createVector(0, 0);
                 this.acc = createVector(0, 0);
-                this.maxSpeed = maxSpeed;
                 this.prevPos = this.pos.copy();
             }
 
@@ -202,7 +207,7 @@
 
             update() {
                 this.vel.add(this.acc);
-                this.vel.limit(this.maxSpeed);
+                this.vel.limit(maxSpeed);  // Usar maxSpeed actualizado
                 this.pos.add(this.vel);
                 this.acc.mult(0);
             }
@@ -234,8 +239,8 @@
                 let brightnessValue = map(sin(frameCount * 0.03 + this.pos.y * 0.01), -1, 1, 70, 100);
 
                 // Ajustar la opacidad de las partículas en función de la amplitud del sonido
-                let alphaValue = map(amplitudeLevel, 0, 0.1, 0, 255);
-                alphaValue = constrain(alphaValue, 0, 255);
+                let alphaValue = map(amplitudeLevel, 0, 0.1, 50, 255);  // Valor mínimo aumentado a 50
+                alphaValue = constrain(alphaValue, 50, 255);
 
                 fill(hueValue, saturationValue, brightnessValue, alphaValue);
                 stroke(192, 192, 192, alphaValue);
@@ -249,6 +254,13 @@
                     curveVertex(this.pos.x + offsetX, this.pos.y + offsetY);
                 }
                 endShape(CLOSE);
+
+                this.prevPos = this.pos.copy();
+            }
+        }
+    </script>
+</body>
+</html>
 
                 this.prevPos = this.pos.copy();
             }
