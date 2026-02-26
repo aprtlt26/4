@@ -32,16 +32,22 @@ let maxSpeed=0.5;
 let audioStarted=false;
 
 let globalReverb,globalDelay,globalCompressor;
-let globalOscillator=[];
-let currentFreqs=[],targetFreqs=[];
 let amplitude;
 
-let touchPrev;
-let touchVelocity=0;
-let touchEnergy=0;
+// 🔊 VOICE POOL anti-clipping móvil
+let voicePool=[];
+let voiceIndex=0;
+let VOICES=24;
+
+let erasePoint=null;
+let eraseRadiusSq=120*120;
 
 function setup(){
+
+  pixelDensity(1);
   createCanvas(windowWidth,windowHeight);
+  frameRate(60);
+
   colorMode(HSB,660,900,100,10000);
 
   cols=floor(width/scl);
@@ -49,42 +55,37 @@ function setup(){
   flowfield=new Array(cols*rows);
 
   globalReverb=new p5.Reverb();
-  globalReverb.set(50,30);
+  globalReverb.set(40,20);
 
   globalDelay=new p5.Delay();
-  globalDelay.process(globalReverb,0.5,0.7,2500);
+  globalDelay.process(globalReverb,0.4,0.6,1800);
 
   globalCompressor=new p5.Compressor();
-  globalCompressor.attack(0.03);
-  globalCompressor.release(0.5);
-  globalCompressor.threshold(-30);
-  globalCompressor.ratio(6);
+  globalCompressor.attack(0.02);
+  globalCompressor.release(0.4);
+  globalCompressor.threshold(-24);
+  globalCompressor.ratio(8);
   globalCompressor.connect();
 
   amplitude=new p5.Amplitude();
   amplitude.setInput(globalCompressor);
 
-  for(let i=0;i<800;i++) particles.push(new Particle());
-
-  background(255);
-  noLoop();
-
-  for(let i=0;i<8;i++){
+  // 🔊 crear voces compartidas (una sola instancia global)
+  for(let i=0;i<VOICES;i++){
     let osc=new p5.Oscillator('sine');
-    let f=random(200,600);
-    osc.freq(f);
     osc.amp(0);
     osc.disconnect();
     osc.connect(globalReverb);
     osc.connect(globalDelay);
     osc.connect(globalCompressor);
     osc.start();
-    globalOscillator.push(osc);
-    currentFreqs.push(f);
-    targetFreqs.push(f);
+    voicePool.push(osc);
   }
 
-  setInterval(changeFrequencies,30000);
+  for(let i=0;i<800;i++) particles.push(new Particle());
+
+  background(255);
+  noLoop();
 }
 
 function draw(){
@@ -94,9 +95,7 @@ function draw(){
 
   let level=amplitude.getLevel();
 
-  touchEnergy*=0.9;
-
-  maxSpeed=map(level+touchEnergy,0,0.2,0.5,2);
+  maxSpeed=map(level,0,0.1,0.5,2);
   maxSpeed=constrain(maxSpeed,0.5,2);
 
   let yoff=0;
@@ -104,17 +103,7 @@ function draw(){
     let xoff=0;
     for(let x=0;x<cols;x++){
       let index=x+y*cols;
-
       let angle=noise(xoff,yoff,zoff)*TWO_PI;
-
-      // perturbación táctil suave en el flowfield
-      if(touchEnergy>0){
-        let d=dist(x*scl,y*scl,mouseX,mouseY);
-        if(d<150){
-          angle+=map(d,0,150,0.8,0);
-        }
-      }
-
       let v=p5.Vector.fromAngle(angle);
       v.setMag(0.05);
       flowfield[index]=v;
@@ -124,72 +113,80 @@ function draw(){
   }
 
   for(let p of particles){
+
     p.follow(flowfield);
     p.update();
     p.edges();
-    p.show(level+touchEnergy);
-  }
+    p.show(level);
 
-  // audio modulado por velocidad del gesto
-  let gain=map(touchVelocity,0,50,0.005,0.15);
-  gain=constrain(gain,0.005,0.15);
+    // 🧼 TOUCH → borrar y regenerar
+    if(erasePoint){
+      let dx=p.pos.x-erasePoint.x;
+      let dy=p.pos.y-erasePoint.y;
+      if(dx*dx+dy*dy<eraseRadiusSq){
+        p.reset();
 
-  for(let i=0;i<globalOscillator.length;i++){
-    globalOscillator[i].freq(
-      lerp(currentFreqs[i],targetFreqs[i],
-      (frameCount%10000)/10000)
-    );
-    globalOscillator[i].amp(gain,0.2);
+        // 🔊 disparo sonoro corto por regeneración
+        triggerVoice(p.pos.x,p.pos.y);
+      }
+    }
   }
 
   zoff+=0.2;
 }
 
-function changeFrequencies(){
-  for(let i=0;i<globalOscillator.length;i++){
-    currentFreqs[i]=targetFreqs[i];
-    targetFreqs[i]=random(300,500);
-  }
-  for(let p of particles) p.reset();
-}
+function triggerVoice(x,y){
 
-function startAudio(){
-  if(!audioStarted){
-    userStartAudio();
-    audioStarted=true;
-    for(let osc of globalOscillator){
-      osc.amp(0.005,2);
-    }
-    loop();
-  }
+  let osc=voicePool[voiceIndex];
+  voiceIndex=(voiceIndex+1)%VOICES;
+
+  let freq=map(y,0,height,1200,3000);
+  let amp=map(x,0,width,0.02,0.12);
+
+  osc.freq(freq);
+  osc.amp(amp,0.01);
+
+  setTimeout(()=>osc.amp(0,0.05),60);
 }
 
 /* =========================
    TOUCH / MOUSE
 ========================= */
 
-function touchStarted(){startAudio();return false;}
-function touchMoved(){handleGesture();return false;}
-function mousePressed(){startAudio();}
-function mouseDragged(){handleGesture();}
-
-function handleGesture(){
-  let pos=createVector(mouseX,mouseY);
-
-  if(touchPrev){
-    touchVelocity=p5.Vector.dist(pos,touchPrev);
-    touchEnergy=map(touchVelocity,0,50,0,0.15);
+function startAudio(){
+  if(!audioStarted){
+    userStartAudio();
+    audioStarted=true;
+    loop();
   }
+}
 
-  touchPrev=pos.copy();
+function touchStarted(){
+  startAudio();
+  erasePoint=createVector(mouseX,mouseY);
+  return false;
+}
 
-  // reset suave de partículas cercanas (sin spawn visible)
-  for(let p of particles){
-    let d=dist(pos.x,pos.y,p.pos.x,p.pos.y);
-    if(d<120){
-      p.vel.mult(0.2);
-    }
-  }
+function touchMoved(){
+  erasePoint.set(mouseX,mouseY);
+  return false;
+}
+
+function touchEnded(){
+  erasePoint=null;
+}
+
+function mousePressed(){
+  startAudio();
+  erasePoint=createVector(mouseX,mouseY);
+}
+
+function mouseDragged(){
+  erasePoint.set(mouseX,mouseY);
+}
+
+function mouseReleased(){
+  erasePoint=null;
 }
 
 /* =========================
@@ -207,10 +204,8 @@ class Particle{
     let x=floor(this.pos.x/scl);
     let y=floor(this.pos.y/scl);
     let index=x+y*cols;
-    this.applyForce(vectors[index]);
+    this.acc.add(vectors[index]);
   }
-
-  applyForce(f){this.acc.add(f);}
 
   update(){
     this.vel.add(this.acc);
@@ -227,13 +222,13 @@ class Particle{
   }
 
   reset(){
-    this.pos=createVector(random(width),random(height));
+    this.pos.set(random(width),random(height));
     this.vel.mult(0);
     this.acc.mult(0);
   }
 
   show(amp){
-    let alpha=map(amp,0,0.2,50,255);
+    let alpha=map(amp,0,0.1,50,255);
     alpha=constrain(alpha,50,255);
 
     fill(980,80,100,alpha);
