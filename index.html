@@ -3,19 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>EstimulaciónCerebral.Art&Psiq®-AlfonsoPretelt</title>
-
 <style>
-html,body{
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  background:#ffffff;
-  touch-action:none;
-}
+html,body{margin:0;padding:0;overflow:hidden;background:#ffffff;touch-action:none;}
 canvas{display:block;}
 </style>
 </head>
-
 <body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
@@ -24,32 +16,23 @@ canvas{display:block;}
 <script>
 let inc=0.05,scl=10;
 let cols,rows,zoff=0;
-
-let particles=[];
-let flowfield;
-
+let particles=[],flowfield;
 let maxSpeed=0.5;
 let audioStarted=false;
 
-let globalReverb,globalDelay,globalCompressor;
-let amplitude;
+let globalReverb,globalDelay,globalCompressor,amplitude;
 
-/* 🔊 DRONE CONTINUO (igual al original) */
-let droneOsc=[];
-let currentFreqs=[];
-let targetFreqs=[];
-let freqChangeDuration=10000;
+let droneOsc=[],currentFreqs=[],targetFreqs=[],freqChangeDuration=10000;
 
-/* 🔊 VOICE POOL para eventos táctiles */
-let voicePool=[];
-let voiceIndex=0;
-let VOICES=24;
+let voicePool=[],voiceIndex=0,VOICES=20;
 
 let erasePoint=null;
 let eraseRadiusSq=120*120;
 
-function setup(){
+let lastTouchGrainTime=0;
+let TOUCH_GRAIN_INTERVAL=30; // ms
 
+function setup(){
   pixelDensity(1);
   createCanvas(windowWidth,windowHeight);
   frameRate(60);
@@ -76,7 +59,6 @@ function setup(){
   amplitude=new p5.Amplitude();
   amplitude.setInput(globalCompressor);
 
-  /* 🎧 DRONE CONTINUO */
   for(let i=0;i<8;i++){
     let osc=new p5.Oscillator('sine');
     let f=random(200,600);
@@ -87,13 +69,11 @@ function setup(){
     osc.connect(globalDelay);
     osc.connect(globalCompressor);
     osc.start();
-
     droneOsc.push(osc);
     currentFreqs.push(f);
     targetFreqs.push(f);
   }
 
-  /* 🎧 VOICES táctiles */
   for(let i=0;i<VOICES;i++){
     let osc=new p5.Oscillator('sine');
     osc.amp(0);
@@ -138,24 +118,27 @@ function draw(){
   }
 
   for(let p of particles){
-
     p.follow(flowfield);
     p.update();
     p.edges();
     p.show(level);
 
-    /* ✋ TOUCH → regenerar + micro-grano */
     if(erasePoint){
       let dx=p.pos.x-erasePoint.x;
       let dy=p.pos.y-erasePoint.y;
+
       if(dx*dx+dy*dy<eraseRadiusSq){
         p.reset();
-        triggerTouchGrain(p.pos.x,p.pos.y);
+
+        let now=millis();
+        if(now-lastTouchGrainTime>TOUCH_GRAIN_INTERVAL){
+          triggerTouchGrain(p.pos.x,p.pos.y);
+          lastTouchGrainTime=now;
+        }
       }
     }
   }
 
-  /* 🔊 DRONE FLUIDO CONTINUO */
   let globalGainMod=map(noise(frameCount*0.02),0,1,0.01,0.3)*0.3;
 
   for(let i=0;i<droneOsc.length;i++){
@@ -169,9 +152,8 @@ function draw(){
   zoff+=0.2;
 }
 
-/* 🎧 grano táctil superpuesto */
+/* 🔊 grano táctil sin setTimeout → baja latencia */
 function triggerTouchGrain(x,y){
-
   let osc=voicePool[voiceIndex];
   voiceIndex=(voiceIndex+1)%VOICES;
 
@@ -180,7 +162,7 @@ function triggerTouchGrain(x,y){
 
   osc.freq(freq);
   osc.amp(amp,0.01);
-  setTimeout(()=>osc.amp(0,0.05),70);
+  osc.amp(0,0.08); // release interno sin cola
 }
 
 function changeFrequencies(){
@@ -191,30 +173,46 @@ function changeFrequencies(){
   for(let p of particles) p.reset();
 }
 
-/* INPUT */
+/* 🔑 posición táctil real */
+function getTouchPos(){
+  if(touches.length>0){
+    return createVector(touches[0].x,touches[0].y);
+  }
+  return createVector(mouseX,mouseY);
+}
 
 function startAudio(){
   if(!audioStarted){
     userStartAudio();
     audioStarted=true;
-
-    for(let osc of droneOsc){
-      osc.amp(0.005,2);
-    }
-
+    for(let osc of droneOsc) osc.amp(0.005,2);
     loop();
   }
 }
 
-function touchStarted(){startAudio();erasePoint=createVector(mouseX,mouseY);return false;}
-function touchMoved(){erasePoint.set(mouseX,mouseY);return false;}
-function touchEnded(){erasePoint=null;}
+function touchStarted(){
+  startAudio();
+  erasePoint=getTouchPos();
+  return false;
+}
+function touchMoved(){
+  erasePoint=getTouchPos();
+  return false;
+}
+function touchEnded(){
+  erasePoint=null;
+}
 
-function mousePressed(){startAudio();erasePoint=createVector(mouseX,mouseY);}
-function mouseDragged(){erasePoint.set(mouseX,mouseY);}
-function mouseReleased(){erasePoint=null;}
-
-/* PARTICLE */
+function mousePressed(){
+  startAudio();
+  erasePoint=getTouchPos();
+}
+function mouseDragged(){
+  erasePoint=getTouchPos();
+}
+function mouseReleased(){
+  erasePoint=null;
+}
 
 class Particle{
   constructor(){
@@ -272,8 +270,6 @@ function windowResized(){
   resizeCanvas(windowWidth,windowHeight);
 }
 </script>
-
 </body>
 </html>
-
 
