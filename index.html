@@ -5,13 +5,14 @@
 <title>EstimulaciónCerebral.Art&Psiq®-AlfonsoPretelt</title>
 
 <style>
-body,html{
+html,body{
   margin:0;
   padding:0;
   overflow:hidden;
-  background:rgb(255,255,255);
+  background:#ffffff;
+  touch-action:none;
 }
-body{ touch-action:none; }
+canvas{display:block;}
 </style>
 </head>
 
@@ -21,36 +22,26 @@ body{ touch-action:none; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
 
 <script>
-let inc=0.05;
-let scl=10;
-let cols,rows;
-let zoff=0;
+let inc=0.05,scl=10;
+let cols,rows,zoff=0;
+
 let particles=[];
 let flowfield;
+
 let maxSpeed=0.5;
 let audioStarted=false;
 
 let globalReverb,globalDelay,globalCompressor;
 let globalOscillator=[];
-let currentFreqs=[];
-let targetFreqs=[];
-let freqChangeDuration=10000;
-
+let currentFreqs=[],targetFreqs=[];
 let amplitude;
-let intensityTimer=0;
-let intensityInterval=5000;
-let intensity=0.5;
 
-let erasePoint=null;
-let eraseRadiusSq=50*50;
+let touchPrev;
+let touchVelocity=0;
+let touchEnergy=0;
 
 function setup(){
-
-  pixelDensity(1);
   createCanvas(windowWidth,windowHeight);
-  frameRate(60);
-  noiseDetail(2,0.5);
-
   colorMode(HSB,660,900,100,10000);
 
   cols=floor(width/scl);
@@ -73,17 +64,15 @@ function setup(){
   amplitude=new p5.Amplitude();
   amplitude.setInput(globalCompressor);
 
-  for(let i=0;i<800;i++){
-    particles.push(new Particle());
-  }
+  for(let i=0;i<800;i++) particles.push(new Particle());
 
   background(255);
   noLoop();
 
   for(let i=0;i<8;i++){
     let osc=new p5.Oscillator('sine');
-    let initialFreq=random(200,600);
-    osc.freq(initialFreq);
+    let f=random(200,600);
+    osc.freq(f);
     osc.amp(0);
     osc.disconnect();
     osc.connect(globalReverb);
@@ -91,8 +80,8 @@ function setup(){
     osc.connect(globalCompressor);
     osc.start();
     globalOscillator.push(osc);
-    currentFreqs.push(initialFreq);
-    targetFreqs.push(initialFreq);
+    currentFreqs.push(f);
+    targetFreqs.push(f);
   }
 
   setInterval(changeFrequencies,30000);
@@ -103,21 +92,29 @@ function draw(){
 
   background(10,50);
 
-  let yoff=0;
-
-  let globalGainMod=map(noise(frameCount*0.02),0,1,0.01,0.3);
-  globalGainMod*=0.3;
-
   let level=amplitude.getLevel();
 
-  maxSpeed=map(level,0,0.1,0.5,2);
+  touchEnergy*=0.9;
+
+  maxSpeed=map(level+touchEnergy,0,0.2,0.5,2);
   maxSpeed=constrain(maxSpeed,0.5,2);
 
+  let yoff=0;
   for(let y=0;y<rows;y++){
     let xoff=0;
     for(let x=0;x<cols;x++){
       let index=x+y*cols;
+
       let angle=noise(xoff,yoff,zoff)*TWO_PI;
+
+      // perturbación táctil suave en el flowfield
+      if(touchEnergy>0){
+        let d=dist(x*scl,y*scl,mouseX,mouseY);
+        if(d<150){
+          angle+=map(d,0,150,0.8,0);
+        }
+      }
+
       let v=p5.Vector.fromAngle(angle);
       v.setMag(0.05);
       flowfield[index]=v;
@@ -130,54 +127,22 @@ function draw(){
     p.follow(flowfield);
     p.update();
     p.edges();
-    p.show(level);
-
-    if(erasePoint){
-      let dx=erasePoint.x-p.pos.x;
-      let dy=erasePoint.y-p.pos.y;
-      if(dx*dx+dy*dy<eraseRadiusSq){
-        p.reset();
-      }
-    }
+    p.show(level+touchEnergy);
   }
 
-  if(millis()-intensityTimer>intensityInterval){
-    intensityTimer=millis();
-    intensity=random(0.1,1);
-    if(intensity<0.15){ intensity=0; }
-    adjustParticleCount(intensity);
-  }
-
-  let attackTime=0.5;
+  // audio modulado por velocidad del gesto
+  let gain=map(touchVelocity,0,50,0.005,0.15);
+  gain=constrain(gain,0.005,0.15);
 
   for(let i=0;i<globalOscillator.length;i++){
     globalOscillator[i].freq(
       lerp(currentFreqs[i],targetFreqs[i],
-      (frameCount%freqChangeDuration)/freqChangeDuration)
+      (frameCount%10000)/10000)
     );
-
-    if(intensity===0){
-      globalOscillator[i].amp(0,attackTime);
-    }else{
-      globalOscillator[i].amp(globalGainMod*intensity,attackTime);
-    }
+    globalOscillator[i].amp(gain,0.2);
   }
 
   zoff+=0.2;
-}
-
-function adjustParticleCount(intensity){
-  let desiredNumParticles=map(intensity,0,1,0,1000);
-  desiredNumParticles=floor(constrain(desiredNumParticles,0,1000));
-
-  if(particles.length<desiredNumParticles){
-    let newParticles=desiredNumParticles-particles.length;
-    for(let i=0;i<newParticles;i++){
-      particles.push(new Particle());
-    }
-  }else if(particles.length>desiredNumParticles){
-    particles.splice(0,particles.length-desiredNumParticles);
-  }
 }
 
 function changeFrequencies(){
@@ -185,54 +150,67 @@ function changeFrequencies(){
     currentFreqs[i]=targetFreqs[i];
     targetFreqs[i]=random(300,500);
   }
-
-  for(let p of particles){
-    p.reset();
-  }
+  for(let p of particles) p.reset();
 }
 
-function mousePressed(){
+function startAudio(){
   if(!audioStarted){
     userStartAudio();
     audioStarted=true;
-
     for(let osc of globalOscillator){
       osc.amp(0.005,2);
     }
-
     loop();
   }
 }
 
-function mouseMoved(){
-  if(!erasePoint) erasePoint=createVector(mouseX,mouseY);
-  else erasePoint.set(mouseX,mouseY);
+/* =========================
+   TOUCH / MOUSE
+========================= */
+
+function touchStarted(){startAudio();return false;}
+function touchMoved(){handleGesture();return false;}
+function mousePressed(){startAudio();}
+function mouseDragged(){handleGesture();}
+
+function handleGesture(){
+  let pos=createVector(mouseX,mouseY);
+
+  if(touchPrev){
+    touchVelocity=p5.Vector.dist(pos,touchPrev);
+    touchEnergy=map(touchVelocity,0,50,0,0.15);
+  }
+
+  touchPrev=pos.copy();
+
+  // reset suave de partículas cercanas (sin spawn visible)
+  for(let p of particles){
+    let d=dist(pos.x,pos.y,p.pos.x,p.pos.y);
+    if(d<120){
+      p.vel.mult(0.2);
+    }
+  }
 }
 
-function touchMoved(){
-  if(!erasePoint) erasePoint=createVector(mouseX,mouseY);
-  else erasePoint.set(mouseX,mouseY);
-  return false;
-}
-
-function touchEnded(){
-  erasePoint=null;
-}
+/* =========================
+   PARTÍCULAS
+========================= */
 
 class Particle{
   constructor(){
     this.pos=createVector(random(width),random(height));
     this.vel=createVector(0,0);
     this.acc=createVector(0,0);
-    this.prevPos=this.pos.copy();
   }
 
   follow(vectors){
     let x=floor(this.pos.x/scl);
     let y=floor(this.pos.y/scl);
     let index=x+y*cols;
-    this.acc.add(vectors[index]);
+    this.applyForce(vectors[index]);
   }
+
+  applyForce(f){this.acc.add(f);}
 
   update(){
     this.vel.add(this.acc);
@@ -254,29 +232,22 @@ class Particle{
     this.acc.mult(0);
   }
 
-  show(amplitudeLevel){
+  show(amp){
+    let alpha=map(amp,0,0.2,50,255);
+    alpha=constrain(alpha,50,255);
 
-    let hueValue=map(sin(frameCount*0.090+this.pos.x*0.001),-1,1,224,654);
-    let saturationValue=map(this.pos.y,0,height,50,100);
-    let brightnessValue=map(sin(frameCount*0.03+this.pos.y*0.01),-1,1,70,100);
-
-    let alphaValue=map(amplitudeLevel,0,0.1,50,255);
-    alphaValue=constrain(alphaValue,50,255);
-
-    fill(hueValue,saturationValue,brightnessValue,alphaValue);
-    stroke(192,192,192,alphaValue);
+    fill(980,80,100,alpha);
+    stroke(192,192,192,alpha);
     strokeWeight(1);
 
     beginShape();
-    let numPoints=floor(random(3,6));
-    for(let i=0;i<numPoints;i++){
-      let offsetX=random(-30,30);
-      let offsetY=random(-10,20);
-      curveVertex(this.pos.x+offsetX,this.pos.y+offsetY);
+    for(let i=0;i<floor(random(3,6));i++){
+      curveVertex(
+        this.pos.x+random(-30,30),
+        this.pos.y+random(-10,20)
+      );
     }
     endShape(CLOSE);
-
-    this.prevPos=this.pos.copy();
   }
 }
 
