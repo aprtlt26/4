@@ -34,7 +34,13 @@ let audioStarted=false;
 let globalReverb,globalDelay,globalCompressor;
 let amplitude;
 
-// 🔊 VOICE POOL anti-clipping móvil
+/* 🔊 DRONE CONTINUO (igual al original) */
+let droneOsc=[];
+let currentFreqs=[];
+let targetFreqs=[];
+let freqChangeDuration=10000;
+
+/* 🔊 VOICE POOL para eventos táctiles */
 let voicePool=[];
 let voiceIndex=0;
 let VOICES=24;
@@ -70,7 +76,24 @@ function setup(){
   amplitude=new p5.Amplitude();
   amplitude.setInput(globalCompressor);
 
-  // 🔊 crear voces compartidas (una sola instancia global)
+  /* 🎧 DRONE CONTINUO */
+  for(let i=0;i<8;i++){
+    let osc=new p5.Oscillator('sine');
+    let f=random(200,600);
+    osc.freq(f);
+    osc.amp(0);
+    osc.disconnect();
+    osc.connect(globalReverb);
+    osc.connect(globalDelay);
+    osc.connect(globalCompressor);
+    osc.start();
+
+    droneOsc.push(osc);
+    currentFreqs.push(f);
+    targetFreqs.push(f);
+  }
+
+  /* 🎧 VOICES táctiles */
   for(let i=0;i<VOICES;i++){
     let osc=new p5.Oscillator('sine');
     osc.amp(0);
@@ -83,6 +106,8 @@ function setup(){
   }
 
   for(let i=0;i<800;i++) particles.push(new Particle());
+
+  setInterval(changeFrequencies,30000);
 
   background(255);
   noLoop();
@@ -119,79 +144,77 @@ function draw(){
     p.edges();
     p.show(level);
 
-    // 🧼 TOUCH → borrar y regenerar
+    /* ✋ TOUCH → regenerar + micro-grano */
     if(erasePoint){
       let dx=p.pos.x-erasePoint.x;
       let dy=p.pos.y-erasePoint.y;
       if(dx*dx+dy*dy<eraseRadiusSq){
         p.reset();
-
-        // 🔊 disparo sonoro corto por regeneración
-        triggerVoice(p.pos.x,p.pos.y);
+        triggerTouchGrain(p.pos.x,p.pos.y);
       }
     }
+  }
+
+  /* 🔊 DRONE FLUIDO CONTINUO */
+  let globalGainMod=map(noise(frameCount*0.02),0,1,0.01,0.3)*0.3;
+
+  for(let i=0;i<droneOsc.length;i++){
+    droneOsc[i].freq(
+      lerp(currentFreqs[i],targetFreqs[i],
+      (frameCount%freqChangeDuration)/freqChangeDuration)
+    );
+    droneOsc[i].amp(globalGainMod,0.5);
   }
 
   zoff+=0.2;
 }
 
-function triggerVoice(x,y){
+/* 🎧 grano táctil superpuesto */
+function triggerTouchGrain(x,y){
 
   let osc=voicePool[voiceIndex];
   voiceIndex=(voiceIndex+1)%VOICES;
 
   let freq=map(y,0,height,1200,3000);
-  let amp=map(x,0,width,0.02,0.12);
+  let amp=map(x,0,width,0.01,0.08);
 
   osc.freq(freq);
   osc.amp(amp,0.01);
-
-  setTimeout(()=>osc.amp(0,0.05),60);
+  setTimeout(()=>osc.amp(0,0.05),70);
 }
 
-/* =========================
-   TOUCH / MOUSE
-========================= */
+function changeFrequencies(){
+  for(let i=0;i<droneOsc.length;i++){
+    currentFreqs[i]=targetFreqs[i];
+    targetFreqs[i]=random(300,500);
+  }
+  for(let p of particles) p.reset();
+}
+
+/* INPUT */
 
 function startAudio(){
   if(!audioStarted){
     userStartAudio();
     audioStarted=true;
+
+    for(let osc of droneOsc){
+      osc.amp(0.005,2);
+    }
+
     loop();
   }
 }
 
-function touchStarted(){
-  startAudio();
-  erasePoint=createVector(mouseX,mouseY);
-  return false;
-}
+function touchStarted(){startAudio();erasePoint=createVector(mouseX,mouseY);return false;}
+function touchMoved(){erasePoint.set(mouseX,mouseY);return false;}
+function touchEnded(){erasePoint=null;}
 
-function touchMoved(){
-  erasePoint.set(mouseX,mouseY);
-  return false;
-}
+function mousePressed(){startAudio();erasePoint=createVector(mouseX,mouseY);}
+function mouseDragged(){erasePoint.set(mouseX,mouseY);}
+function mouseReleased(){erasePoint=null;}
 
-function touchEnded(){
-  erasePoint=null;
-}
-
-function mousePressed(){
-  startAudio();
-  erasePoint=createVector(mouseX,mouseY);
-}
-
-function mouseDragged(){
-  erasePoint.set(mouseX,mouseY);
-}
-
-function mouseReleased(){
-  erasePoint=null;
-}
-
-/* =========================
-   PARTÍCULAS
-========================= */
+/* PARTICLE */
 
 class Particle{
   constructor(){
@@ -203,8 +226,7 @@ class Particle{
   follow(vectors){
     let x=floor(this.pos.x/scl);
     let y=floor(this.pos.y/scl);
-    let index=x+y*cols;
-    this.acc.add(vectors[index]);
+    this.acc.add(vectors[x+y*cols]);
   }
 
   update(){
@@ -215,10 +237,10 @@ class Particle{
   }
 
   edges(){
-    if(this.pos.x>width) this.pos.x=0;
-    if(this.pos.x<0) this.pos.x=width;
-    if(this.pos.y>height) this.pos.y=0;
-    if(this.pos.y<0) this.pos.y=height;
+    if(this.pos.x>width)this.pos.x=0;
+    if(this.pos.x<0)this.pos.x=width;
+    if(this.pos.y>height)this.pos.y=0;
+    if(this.pos.y<0)this.pos.y=height;
   }
 
   reset(){
